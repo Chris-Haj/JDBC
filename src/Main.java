@@ -62,6 +62,7 @@ public class Main {
                 Language(con);
                 break;
             case 3:
+                Age(con);
                 break;
             case 4:
                 break;
@@ -72,6 +73,19 @@ public class Main {
                 System.out.println("Please enter a number from 1 to 5 only!");
         }
     }
+
+    public static void Age(Connection con) {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Please enter the first age for the beginning of the range");
+        int left = scanner.nextInt();
+        System.out.println("Please enter the second age for the ending of the range");
+        int right = scanner.nextInt();
+        System.out.println("Please enter a country name or press enter without typing any country");
+        String country = scanner.nextLine();
+
+
+    }
+
     public static void Language(Connection con) throws SQLException{
         ArrayList<String> langs = ListOfLanguages(con);
         System.out.println("Please enter a language or languages seperated by ';' from this list");
