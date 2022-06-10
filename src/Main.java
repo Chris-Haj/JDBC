@@ -1,4 +1,3 @@
-import javax.xml.transform.Result;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.sql.*;
@@ -11,7 +10,7 @@ public class Main {
     public static String[] Titles;
 
     public static void main(String[] args) throws FileNotFoundException, SQLException {
-        start();
+        createLangsTable(connect());
     }
     private static void start() throws FileNotFoundException, SQLException {
         Connection con = connect();
@@ -80,16 +79,15 @@ public class Main {
         int left = scanner.nextInt();
         System.out.println("Please enter the second age for the ending of the range");
         int right = scanner.nextInt();
-        System.out.println("Please enter a country name or press enter without typing any country");
+        System.out.println("Please enter a country name or press enter without typing any country name");
         String country = scanner.nextLine();
-
 
     }
 
     public static void Language(Connection con) throws SQLException{
-        ArrayList<String> langs = ListOfLanguages(con);
+
         System.out.println("Please enter a language or languages seperated by ';' from this list");
-        System.out.println(langs);
+
         Scanner scanner = new Scanner(System.in);
         String language = scanner.nextLine();
         String select = "select Employment, Country,Age from StackOverFlowQuestionnaire" +
@@ -101,16 +99,33 @@ public class Main {
         }
 
     }
-
-    public static ArrayList<String> ListOfLanguages(Connection con) throws SQLException{
+    public static void createLangsTable(Connection con){
+        try {
+            Set<String> langs = ListOfLanguages(con);
+            String table = "create table languages(ID INTEGER PRIMARY KEY,text Language)";
+            String insert = "insert into languages values(%d, '%s');";
+            Statement execute = con.createStatement();
+            execute.executeUpdate(table);
+            int i=0;
+            for(String language : langs){
+                execute.executeUpdate(insert.formatted(i++,language));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public static Set<String> ListOfLanguages(Connection con) throws SQLException{
         ResultSet res;
         String select = "select distinct LanguageHaveWorkedWith from StackOverFlowQuestionnaire";
         Statement execute = con.createStatement();
         res = execute.executeQuery(select);
-        ArrayList<String> langs = new ArrayList<>();
-        while(res.next())
-            langs.add(res.getString("LanguageHaveWorkedWith"));
-        langs.remove("");
+        Set<String> langs = new HashSet<>();
+        while(res.next()){
+            String[] l = res.getString("LanguageHaveWorkedWith").split(";");
+            for(String i : l)
+                langs.add(i);
+        }
+
         execute.close();
         return langs;
 
@@ -128,12 +143,10 @@ public class Main {
         }
         String[] headers = Arrays.copyOfRange(Lines.get(0),0,Lines.get(0).length);
         Titles = Arrays.copyOfRange(Lines.get(0),0,Lines.get(0).length);
-        String table = ("CREATE TABLE StackOverFlowQuestionnaire " +
-                "(Idx INTEGER PRIMARY KEY, %s text,%s text, %s text, %s text,%s text, %s text,%s text, %s text, %s text);").formatted(headers[1], headers[2],
+        String table = ("CREATE TABLE StackOverFlowQuestionnaire (Idx INTEGER PRIMARY KEY, %s text,%%s text, %%s text, %%s text,%%s text, %%s text,%%s text, %%s text, %%s text);".formatted()).formatted(headers[1], headers[2],
                 headers[3], headers[4], headers[5],
                 headers[6], headers[7], headers[8],headers[9]);
         Statement execute = con.createStatement();
-        System.out.println(table);
         execute.executeUpdate(table);
         String insert =  "INSERT INTO StackOverFlowQuestionnaire values(%s,'%s','%s','%s','%s','%s','%s','%s','%s','%s')";
         String curInsert;

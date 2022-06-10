@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="StackOverFlow.db" uuid="ba3e9080-1b23-4308-8f43-7bd052720cf9">
+    <data-source source="LOCAL" name="StackOverFlow.db" uuid="13faf302-7a34-49b0-850f-57932ce0dc97">
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
