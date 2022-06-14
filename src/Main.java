@@ -6,21 +6,7 @@ import java.util.*;
 public class Main {
     static boolean running = true;
     static int load = 0;
-    public static void Language(Connection con) throws SQLException {
 
-        System.out.println("Please enter a language or languages seperated by ';' from this list");
-
-        Scanner scanner = new Scanner(System.in);
-        String language = scanner.nextLine();
-        String select = "select Employment, Country,Age from StackOverFlowQuestionnaire" +
-                " where '%s'==LanguageHaveWorkedWith".formatted(language);
-        Statement execute = con.createStatement();
-        ResultSet res = execute.executeQuery(select);
-        while (res.next()) {
-            System.out.println(res.getString("Employment") + "\t" + res.getString("Country") + "\t" + res.getString("Age"));
-        }
-
-    }
 
     public static Set<String> ListOfLanguages(Connection con) throws SQLException {
         ResultSet res;
@@ -65,11 +51,7 @@ public class Main {
 
 
     public static void main(String[] args) throws FileNotFoundException, SQLException {
-//        Load(connect());
-        Scanner scanner = new Scanner(new File("StackDataBase.csv"));
-        while(scanner.hasNext()){
-            System.out.println(scanner.nextLine());
-        }
+        Load(connect());
     }
 
     public static void Load(Connection con) throws FileNotFoundException, SQLException {
@@ -87,7 +69,7 @@ public class Main {
                     """;
         String insert2 = "insert into KnownLanguages values(?, ?);";
         Statement st = con.createStatement();
-//        st.executeUpdate(table);
+        st.executeUpdate(table);
         st.executeUpdate(table2);
         st.close();
         PreparedStatement execute = con.prepareStatement(insert);
@@ -150,10 +132,10 @@ public class Main {
                     language.executeUpdate();
                 }
             }
-//            execute.addBatch();
+            execute.addBatch();
             batch++;
             if (batch % 100 == 0){
-//                execute.executeBatch();
+                execute.executeBatch();
             }
         }
         scanner.close();
@@ -208,7 +190,7 @@ public class Main {
                 }
                 break;
             case 2:
-                Language(con);
+
                 break;
             case 3:
                 Age(con);
