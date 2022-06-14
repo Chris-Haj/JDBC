@@ -7,6 +7,22 @@ public class Main {
     static boolean running = true;
     static int load = 0;
 
+    public static void main(String[] args) throws FileNotFoundException, SQLException {
+        Special(connect());
+    }
+
+    public static void Language(Connection con) throws SQLException {
+        System.out.println("Please enter a language or languages seperated by ';' from this list");
+        Scanner scanner = new Scanner(System.in);
+        String language = scanner.nextLine();
+        String select = "select Employment, Country,Age from StackOverFlowQuestionnaire" +
+                " where '%s'==LanguageHaveWorkedWith".formatted(language);
+        Statement execute = con.createStatement();
+        ResultSet res = execute.executeQuery(select);
+        while (res.next()) {
+            System.out.println(res.getString("Employment") + "\t" + res.getString("Country") + "\t" + res.getString("Age"));
+        }
+    }
 
     public static Set<String> ListOfLanguages(Connection con) throws SQLException {
         ResultSet res;
@@ -24,7 +40,6 @@ public class Main {
         return langs;
 
     }
-
 
 
     public static void createLangsTable(Connection con) {
@@ -50,23 +65,19 @@ public class Main {
     }
 
 
-    public static void main(String[] args) throws FileNotFoundException, SQLException {
-        Load(connect());
-    }
-
     public static void Load(Connection con) throws FileNotFoundException, SQLException {
         String fileName = "StackDataBase.csv";
         File f = new File(fileName);
         String table = "CREATE TABLE StackOverFlowQuestionnaire (Idx INTEGER PRIMARY KEY, 'MainBranch' text,'Employment' text,'Country' text, 'Age1st' text,'LearnCode' text," +
                 " 'YearsCode' text,'LanguagesWorkedWith' text, 'AgeStart' INTEGER, 'AgeEnd' INTEGER, 'Gender' text);";
         String insert = "insert into StackOverFlowQuestionnaire values (?,?,?,?,?,?,?,?,?,?,?)";
-        String table2= """
-                    create table KnownLanguages(
-                        Idx Integer,
-                        Language text,
-                        foreign key (Idx) references StackOverFlowQuestionnaire
-                    );
-                    """;
+        String table2 = """
+                create table KnownLanguages(
+                    Idx Integer,
+                    Language text,
+                    foreign key (Idx) references StackOverFlowQuestionnaire
+                );
+                """;
         String insert2 = "insert into KnownLanguages values(?, ?);";
         Statement st = con.createStatement();
         st.executeUpdate(table);
@@ -120,21 +131,20 @@ public class Main {
             ageStart = "";
             ageEnd = "";
             String[] languages = line[7].split(";");
-            if(languages.length==0){
-                language.setInt(1,index);
-                language.setString(2,"");
+            if (languages.length == 0) {
+                language.setInt(1, index);
+                language.setString(2, "");
                 language.executeUpdate();
-            }
-            else{
-                for(String i : languages){
-                    language.setInt(1,index);
-                    language.setString(2,i);
+            } else {
+                for (String i : languages) {
+                    language.setInt(1, index);
+                    language.setString(2, i);
                     language.executeUpdate();
                 }
             }
             execute.addBatch();
             batch++;
-            if (batch % 100 == 0){
+            if (batch % 100 == 0) {
                 execute.executeBatch();
             }
         }
@@ -190,12 +200,13 @@ public class Main {
                 }
                 break;
             case 2:
-
+                Language(con);
                 break;
             case 3:
                 Age(con);
                 break;
             case 4:
+                Special(con);
                 break;
             case 5:
                 running = false;
@@ -205,14 +216,46 @@ public class Main {
         }
     }
 
-    public static void Age(Connection con) {
+    public static void Age(Connection con) throws SQLException {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Please enter the first age for the beginning of the range");
         int left = scanner.nextInt();
         System.out.println("Please enter the second age for the ending of the range");
         int right = scanner.nextInt();
         System.out.println("Please enter a country name or press enter without typing any country name");
+        scanner.nextLine();
         String country = scanner.nextLine();
+        boolean WithCountry = !country.equals("");
+        String query = "select count(Idx) from StackOverFlowQuestionnaire where AgeStart<=" + left + " and AgeEnd>=" + right;
+        query += WithCountry ? " and Country='" + country + "';" : ";";
+        Statement statement = con.createStatement();
+        ResultSet res = statement.executeQuery(query);
+        System.out.print("Number of people between " + left + " to " + right + " is " + res.getString(1));
+        if (WithCountry) {
+            System.out.println(" In " + country);
+        } else
+            System.out.println("");
+        statement.close();
+        res.close();
+    }
 
+    public static void Special(Connection con) throws SQLException {
+        String query = """
+                select sof.*
+                from StackOverFlowQuestionnaire sof, KnownLanguages kl
+                where Country ='United States of America' and kl.Idx = sof.Idx
+                group by sof.Idx
+                having count(kl.Idx)<=2;
+                """;
+        Statement statement = con.createStatement();
+        ResultSet res = statement.executeQuery(query);
+        while(res.next()){
+            for(int i=0;i<11;i++){
+                System.out.print(res.getString(i+1)+" ");
+            }
+            System.out.println("");
+        }
+        statement.close();
+        res.close();
     }
 }
