@@ -6,71 +6,48 @@ import java.util.*;
 public class Main {
     static boolean running = true;
     static int load = 0;
+    static Set<String> languagesList = new HashSet<>();
 
     public static void main(String[] args) throws FileNotFoundException, SQLException {
-        Special(connect());
+        start();
     }
-
+/*This function will print the list of languages that are in the file and ask the user to choose one or more of them
+* after the user enters the list of languages, the function will print all users that know all the languages that the user entered in.*/
     public static void Language(Connection con) throws SQLException {
-        System.out.println("Please enter a language or languages seperated by ';' from this list");
+
+        System.out.println("Please enter one or more languages seperated by spaces from this list:\n"+languagesList);
         Scanner scanner = new Scanner(System.in);
-        String language = scanner.nextLine();
-        String select = "select Employment, Country,Age from StackOverFlowQuestionnaire" +
-                " where '%s'==LanguageHaveWorkedWith".formatted(language);
-        Statement execute = con.createStatement();
-        ResultSet res = execute.executeQuery(select);
+        String languages = scanner.nextLine();
+        String[] LanguagesList = languages.split(" ");
+        String query = "select s.Employment, s.Country, s.AgeStart, s.AgeEnd from StackOverFlow s, Languages l where s.Idx = l.Idx and l.language = ";
+        String intersection = query;
+        //This will create a select query for each language and intersect all of them with each-other to return
+        // only people who know all the languages entered.
+        for (int i = 0; i < LanguagesList.length; i++) {
+            intersection += "'" + LanguagesList[i] + "'";
+            if (i != LanguagesList.length - 1)
+                intersection += " intersect " + query;
+        }
+        intersection += ";";
+        Statement statement = con.createStatement();
+        ResultSet res = statement.executeQuery(intersection);
         while (res.next()) {
-            System.out.println(res.getString("Employment") + "\t" + res.getString("Country") + "\t" + res.getString("Age"));
+            System.out.println(res.getString("Employment") + "\t" + res.getString("Country") + "\t" + res.getString("AgeStart") +
+                    "-" + res.getString("AgeEnd"));
         }
+        statement.close();
     }
-
-    public static Set<String> ListOfLanguages(Connection con) throws SQLException {
-        ResultSet res;
-        String select = "select distinct LanguageHaveWorkedWith from StackOverFlowQuestionnaire";
-        Statement execute = con.createStatement();
-        res = execute.executeQuery(select);
-        Set<String> langs = new HashSet<>();
-        while (res.next()) {
-            String[] l = res.getString("LanguageHaveWorkedWith").split(";");
-            for (String i : l)
-                langs.add(i);
-        }
-
-        execute.close();
-        return langs;
-
-    }
-
-
-    public static void createLangsTable(Connection con) {
-        try {
-            Set<String> langs = ListOfLanguages(con);
-            String table = """
-                    create table langs(
-                        Idx Integer,
-                        Language text,
-                        foreign key (Idx) references StackOverFlowQuestionnaire
-                    );
-                    """;
-            String insert = "insert into KnownLanguages values(?, ?);";
-            Statement execute = con.createStatement();
-            execute.executeUpdate(table);
-            int i = 0;
-            for (String language : langs) {
-                execute.executeUpdate(insert.formatted(i++, language));
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-
+/*
+* This function loads in data by reading the csv file and create a table made of 11 columns with the same head titles as the csv file
+* except the age will be split into the starting and ending range*/
     public static void Load(Connection con) throws FileNotFoundException, SQLException {
+        System.out.println("Data is loading... May take some time.");
         String fileName = "StackDataBase.csv";
         File f = new File(fileName);
         String table = "CREATE TABLE StackOverFlowQuestionnaire (Idx INTEGER PRIMARY KEY, 'MainBranch' text,'Employment' text,'Country' text, 'Age1st' text,'LearnCode' text," +
                 " 'YearsCode' text,'LanguagesWorkedWith' text, 'AgeStart' INTEGER, 'AgeEnd' INTEGER, 'Gender' text);";
         String insert = "insert into StackOverFlowQuestionnaire values (?,?,?,?,?,?,?,?,?,?,?)";
+        /*This table will hold which languages each person holds.*/
         String table2 = """
                 create table KnownLanguages(
                     Idx Integer,
@@ -112,9 +89,8 @@ public class Main {
                     ageEnd = String.valueOf(Integer.parseInt(range[1].replaceAll("[\\D]", "")));
                 }
             }
-            for (int i = 0; i < sep.length; i++) {
+            for (int i = 0; i < sep.length; i++)
                 line[i] = sep[i];
-            }
             line[8] = ageStart;
             line[9] = ageEnd;
             line[10] = sep.length == 10 ? sep[9] : "";
@@ -140,19 +116,24 @@ public class Main {
                     language.setInt(1, index);
                     language.setString(2, i);
                     language.executeUpdate();
+                    languagesList.add(i);
                 }
             }
             execute.addBatch();
             batch++;
-            if (batch % 100 == 0) {
+            if (batch % 300 == 0) {
                 execute.executeBatch();
+                System.out.print("Loading data... " + batch / 30 + "%\r");
             }
         }
+
         scanner.close();
         execute.close();
         language.close();
     }
 
+    /*
+     * Function to start the program called by main.*/
     private static void start() throws FileNotFoundException, SQLException {
         Connection con = connect();
         while (running) {
@@ -167,6 +148,9 @@ public class Main {
         System.out.println("Program exiting...");
     }
 
+    /* Function to create a connection to a database and return the connection
+     for it to be used by other functions
+     to access the data base.*/
     public static Connection connect() {
         Connection c;
         try {
@@ -179,6 +163,8 @@ public class Main {
         return c;
     }
 
+    /*Function to keep printing menu and taking input from the user.
+     * Depending on what the user enters, the appropriate function is called.*/
     public static void PrintMenu(Connection con) throws FileNotFoundException, SQLException {
         Scanner input = new Scanner(System.in);
         System.out.println("""
@@ -215,7 +201,9 @@ public class Main {
                 System.out.println("Please enter a number from 1 to 5 only!");
         }
     }
-
+/*This function asks to input an age range and a country name(optional)
+* all users within this age range will be printed and if a country name was entered then it only print people
+* that are within this age range and in the entered country.*/
     public static void Age(Connection con) throws SQLException {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Please enter the first age for the beginning of the range");
@@ -239,6 +227,7 @@ public class Main {
         res.close();
     }
 
+    /*This function will return all details about the people that live in the US and know a maximum of 2 languages*/
     public static void Special(Connection con) throws SQLException {
         String query = """
                 select sof.*
@@ -249,9 +238,9 @@ public class Main {
                 """;
         Statement statement = con.createStatement();
         ResultSet res = statement.executeQuery(query);
-        while(res.next()){
-            for(int i=0;i<11;i++){
-                System.out.print(res.getString(i+1)+" ");
+        while (res.next()) {
+            for (int i = 0; i < 11; i++) {
+                System.out.print(res.getString(i + 1) + " ");
             }
             System.out.println("");
         }
